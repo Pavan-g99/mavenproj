@@ -1,0 +1,63 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: wezvawebapp
+  labels:
+    app.kubernetes.io/name: wezvawebapp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wezvawebapp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: wezvawebapp
+    spec:
+     containers:
+       - name: wezvawebapp
+         image: adamtravis/myimg:build
+         imagePullPolicy: IfNotPresent
+         ports:
+           - containerPort: 8080
+         volumeMounts:
+         - name: testconfigmap
+           mountPath: "/tmp/config"
+     volumes:
+     - name: testconfigmap
+       configMap:
+         name: wezvawebapp
+         items:
+         - key: sample.conf
+           path: sample.conf
+     imagePullSecrets:
+      - name: dpr-secret
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wezvawebapp
+data:
+   sample.conf: |
+
+            { "sample": {
+                 "db": "awesome.wezva.com",
+                 "user": "master"
+              }
+            }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wezvawebapp
+  labels:
+    app.kubernetes.io/name: wezvawebapp
+spec:
+  type: NodePort
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: wezvawebapp
